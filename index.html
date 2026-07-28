@@ -424,7 +424,12 @@
   </header>
 
   <main class="card">
-    <form id="signupForm" novalidate>
+    <form id="signupForm" name="enrollment" method="POST" data-netlify="true" novalidate>
+      <input type="hidden" name="sex" id="sexValue" value="" />
+      <input type="hidden" name="current_grade_type" id="currentGradeType" value="average" />
+      <input type="hidden" name="target_grade_type" id="targetGradeType" value="average" />
+      <input type="hidden" name="payment_info" id="paymentInfo" value="" />
+      <input type="hidden" name="payment_confirmed" id="paymentConfirmed" value="false" />
 
       <div class="field">
         <label id="sexLabel">Sex</label>
@@ -436,7 +441,7 @@
 
       <div class="field">
         <label for="fullName">Full name</label>
-        <input id="fullName" name="fullName" type="text" required autocomplete="name" placeholder="e.g. Achiri Grace Mbah" />
+        <input id="fullName" name="fullname" type="text" required autocomplete="name" placeholder="e.g. Achiri Grace Mbah" />
       </div>
 
       <div class="field">
@@ -456,7 +461,7 @@
         </div>
         <div class="field">
           <label for="classLevel">Current class / level</label>
-          <input id="classLevel" name="classLevel" type="text" required placeholder="e.g. Level 400 / Form 5" />
+          <input id="classLevel" name="class_level" type="text" required placeholder="e.g. Level 400 / Form 5" />
         </div>
         <div class="field">
           <label for="country">Country</label>
@@ -522,7 +527,7 @@
             <button type="button" class="metric-toggle is-selected" data-input="currentGPA" data-mode="average">Average (0–20)</button>
             <button type="button" class="metric-toggle" data-input="currentGPA" data-mode="gpa">GPA (0–4)</button>
           </div>
-          <input id="currentGPA" name="currentGPA" type="number" inputmode="decimal" step="0.01" min="0" max="20" required placeholder="e.g. 12.50" />
+          <input id="currentGPA" name="current_grade" type="number" inputmode="decimal" step="0.01" min="0" max="20" required placeholder="e.g. 12.50" />
           <span class="field-hint" id="currentGPAHint">Enter an average from 0.00 to 20.00</span>
         </div>
         <div class="field">
@@ -531,7 +536,7 @@
             <button type="button" class="metric-toggle is-selected" data-input="targetGPA" data-mode="average">Average (0–20)</button>
             <button type="button" class="metric-toggle" data-input="targetGPA" data-mode="gpa">GPA (0–4)</button>
           </div>
-          <input id="targetGPA" name="targetGPA" type="number" inputmode="decimal" step="0.01" min="0" max="20" required placeholder="e.g. 16.50" />
+          <input id="targetGPA" name="target_grade" type="number" inputmode="decimal" step="0.01" min="0" max="20" required placeholder="e.g. 16.50" />
           <span class="field-hint" id="targetGPAHint">Enter an average from 0.00 to 20.00</span>
         </div>
       </div>
@@ -557,26 +562,25 @@
 
       <div class="field">
         <label for="hearAbout">How did you hear about us?</label>
-        <select id="hearAbout" name="hearAbout" required>
+        <select id="hearAbout" name="referral" required>
           <option value="" disabled selected>Select one</option>
-          <option>Friend or classmate</option>
-          <option>WhatsApp group or status</option>
-          <option>Facebook</option>
-          <option>Instagram</option>
-          <option>TikTok</option>
-          <option>School / teacher</option>
+          <option value="Friend or classmate">Friend or classmate</option>
+          <option value="WhatsApp group or status">WhatsApp group or status</option>
+          <option value="Facebook">Facebook</option>
+          <option value="Instagram">Instagram</option>
+          <option value="TikTok">TikTok</option>
+          <option value="School / teacher">School / teacher</option>
           <option value="Other">Other</option>
         </select>
       </div>
       <div class="field" id="hearAboutOtherWrap" hidden>
         <label for="hearAboutOther">Please specify</label>
-        <input id="hearAboutOther" name="hearAboutOther" type="text" placeholder="Tell us where" />
+        <input id="hearAboutOther" name="referral_other" type="text" placeholder="Tell us where" />
       </div>
 
       <p class="form-error" id="formError" role="alert" hidden></p>
 
-      <button type="submit" class="btn btn--primary btn--block">Continue to payment →</button>
-    </form>
+      <button type="button" id="continueBtn" class="btn btn--primary btn--block">Continue to payment →</button>
   </main>
 
   <footer class="footer">
@@ -611,17 +615,17 @@
 
       <div class="field">
         <label for="paymentRef">Number you paid with / transaction ID (optional)</label>
-        <input id="paymentRef" type="text" placeholder="e.g. 67xxxxxxx or TXN12345" />
+        <input id="paymentRef" name="payment_info" type="text" placeholder="e.g. 67xxxxxxx or TXN12345" />
       </div>
 
       <label class="checkbox-row" for="paidCheckbox">
-        <input type="checkbox" id="paidCheckbox" />
+        <input type="checkbox" id="paidCheckbox" name="payment_confirmed" value="yes" />
         <span>I have sent the payment of <strong id="paidAmountText">—</strong> via MTN MoMo</span>
       </label>
 
       <p class="form-error" id="paymentError" role="alert" hidden></p>
 
-      <button type="button" class="btn btn--primary btn--block" id="confirmBtn" disabled>Confirm &amp; join ASC</button>
+      <button type="submit" class="btn btn--primary btn--block" id="confirmBtn" disabled>Confirm &amp; join ASC</button>
     </div>
 
     <div id="successView" hidden>
@@ -634,6 +638,8 @@
     </div>
   </div>
 </div>
+
+</form>
 
 <script>
 // =====================================================================
@@ -697,11 +703,13 @@ const CONFIG = {
   // ---- Sex toggle ----
   let sexValue = '';
   const toggles = document.querySelectorAll('.toggle');
+  const sexHiddenInput = document.getElementById('sexValue');
   toggles.forEach(btn => {
     btn.addEventListener('click', () => {
       toggles.forEach(b => b.classList.remove('is-selected'));
       btn.classList.add('is-selected');
       sexValue = btn.dataset.value;
+      sexHiddenInput.value = sexValue;
     });
   });
 
@@ -739,6 +747,8 @@ const CONFIG = {
       btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
     applyMetricMode(input, mode, hintEl);
+    const typeInput = input.id === 'currentGPA' ? document.getElementById('currentGradeType') : document.getElementById('targetGradeType');
+    typeInput.value = mode;
   }
 
   function validateMetricValue(input){
@@ -799,6 +809,7 @@ const CONFIG = {
   const modalOverlay = document.getElementById('modalOverlay');
   const stepDetails = document.getElementById('stepDetails');
   const stepPayment = document.getElementById('stepPayment');
+  const continueBtn = document.getElementById('continueBtn');
 
   function collectFormData(){
     return {
@@ -819,8 +830,7 @@ const CONFIG = {
     };
   }
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
+  continueBtn.addEventListener('click', () => {
     formError.hidden = true;
 
     const nativeValid = form.checkValidity();
@@ -862,8 +872,10 @@ const CONFIG = {
   // ---- Payment checkbox -> enable confirm ----
   const paidCheckbox = document.getElementById('paidCheckbox');
   const confirmBtn = document.getElementById('confirmBtn');
+  const paymentConfirmedInput = document.getElementById('paymentConfirmed');
   paidCheckbox.addEventListener('change', () => {
     confirmBtn.disabled = !paidCheckbox.checked;
+    paymentConfirmedInput.value = paidCheckbox.checked ? 'true' : 'false';
   });
 
   // ---- Confirm & submit ----
@@ -877,7 +889,7 @@ const CONFIG = {
     whatsappBtn.href = 'https://wa.me/' + CONFIG.WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
   }
 
-  confirmBtn.addEventListener('click', async () => {
+  confirmBtn.addEventListener('click', async (e) => {
     paymentError.hidden = true;
     confirmBtn.disabled = true;
     const originalLabel = confirmBtn.textContent;
@@ -894,11 +906,13 @@ const CONFIG = {
         try { await res.json(); } catch (_) { /* opaque/CORS response — assume success */ }
       }
       showSuccess(payload.fullName);
+      form.submit();
     } catch (err) {
       console.error('[ASC] submission error:', err);
       paymentError.hidden = false;
       paymentError.textContent = "We couldn't save your details automatically. Tap the WhatsApp button below and send your screenshot — we'll register you manually.";
       showSuccess(payload.fullName);
+      form.submit();
     } finally {
       confirmBtn.textContent = originalLabel;
       confirmBtn.disabled = !paidCheckbox.checked;
@@ -922,6 +936,7 @@ const CONFIG = {
     currentGPA.closest('.field').classList.remove('is-valid', 'is-invalid');
     targetGPA.closest('.field').classList.remove('is-valid', 'is-invalid');
     paidCheckbox.checked = false;
+    paymentConfirmedInput.value = 'false';
     confirmBtn.disabled = true;
     paymentView.hidden = false;
     successView.hidden = true;
