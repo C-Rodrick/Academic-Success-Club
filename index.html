@@ -404,6 +404,18 @@
   #successView p{ color:var(--ink-soft); font-weight:600; }
   .success-note{ font-family:'Caveat', cursive; font-size:1.5rem; color:var(--flame-red-dark); font-weight:700; margin:6px 0 20px !important; }
 
+  /* Mobile: make Average / GPA toggles smaller and tighter */
+  @media (max-width: 600px) {
+    .metric-toggle{
+      padding:7px 8px;
+      font-size:.78rem;
+      border-radius:8px;
+    }
+    .metric-toggle-group{ gap:6px; }
+    .field label{ font-size:.82rem; }
+    .field-hint{ font-size:.68rem; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition-duration:0.001ms !important; animation-duration:0.001ms !important; }
   }
@@ -648,18 +660,18 @@
 // =====================================================================
 const CONFIG = {
   // Paste your deployed Google Apps Script Web App URL (from apps-script.gs)
-  GAS_URL: '',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwC8NhIvxkucBqSuaJxh3MM97h0wHzA8XJkOje1YJ6KKBTmT6Ms9KU15GoLcezqXMUuqA/exec',
 
   // What students see as the membership price
   AMOUNT_LABEL: '2,000 FCFA',
   PRODUCT_LABEL: 'ASC Membership',
 
   // MTN Mobile Money — dial code uses the LOCAL number (no 237 country code)
-  MTN_ACCOUNT_NAME: 'Your Name Here',
-  MTN_SEND_CODE: '*126*9*652555542*2000#',
+  MTN_ACCOUNT_NAME: 'Christina Tarhnyou Egbe',
+  MTN_SEND_CODE: '*126*9*683347474*2000#',
 
   // WhatsApp number that receives payment screenshots (digits only, with country code, no + or spaces)
-  WHATSAPP_NUMBER: '237652555542'
+  WHATSAPP_NUMBER: '237683347474'
 };
 // =====================================================================
 
@@ -688,11 +700,18 @@ const CONFIG = {
   }
 
   if (dobInput && typeof dobInput.showPicker === 'function') {
-    dobInput.addEventListener('focus', () => {
-      dobInput.showPicker();
-    });
-    dobInput.addEventListener('click', () => {
-      dobInput.showPicker();
+    const safeShowPicker = () => {
+      try {
+        dobInput.showPicker();
+      } catch (err) {
+        // Some browsers require a user gesture; ignore if blocked.
+      }
+    };
+
+    // Use pointerup and keyboard activation to ensure a real user gesture
+    dobInput.addEventListener('pointerup', safeShowPicker);
+    dobInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') safeShowPicker();
     });
   }
 
@@ -885,8 +904,23 @@ const CONFIG = {
   function showSuccess(fullName){
     paymentView.hidden = true;
     successView.hidden = false;
-    const msg = 'Hi ASC team! I\'m ' + fullName + ' and I just signed up and paid ' + CONFIG.AMOUNT_LABEL + ' for ' + CONFIG.PRODUCT_LABEL + '. Here is my payment screenshot:';
-    whatsappBtn.href = 'https://wa.me/' + CONFIG.WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+    const msg = 'Hello ASC team 👋 — I just completed my payment! 🎉%0A%0A' +
+      'Name: ' + fullName + '%0A' +
+      'Amount: ' + CONFIG.AMOUNT_LABEL + '%0A' +
+      'Product: ' + CONFIG.PRODUCT_LABEL + '%0A%0A' +
+      'Here is my payment screenshot:';
+    const waUrl = 'https://wa.me/' + CONFIG.WHATSAPP_NUMBER + '?text=' + encodeURIComponent(decodeURIComponent(msg));
+    whatsappBtn.href = waUrl;
+    try {
+      const win = window.open(waUrl, '_blank');
+      if (!win) {
+        // Popup blocked — leave the button visible for manual tap
+        whatsappBtn.focus();
+      }
+    } catch (err) {
+      // Ignore — button remains for manual use
+      console.warn('[ASC] could not open WhatsApp automatically', err);
+    }
   }
 
   confirmBtn.addEventListener('click', async (e) => {
@@ -900,19 +934,24 @@ const CONFIG = {
 
     try {
       if (CONFIG.GAS_URL) {
-        const fd = new FormData();
-        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
-        const res = await fetch(CONFIG.GAS_URL, { method: 'POST', body: fd });
-        try { await res.json(); } catch (_) { /* opaque/CORS response — assume success */ }
+        // Netlify-style envelope: { payload: { data: { ...form fields... } } }
+        const body = { payload: { data: payload } };
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        // Some deployments (CORS or Apps Script) return an opaque response; ignore parse errors
+        try { await res.text(); } catch (_) { /* ignore */ }
       }
+      // Show success popup and keep user on this page so they can send the screenshot
       showSuccess(payload.fullName);
-      form.submit();
     } catch (err) {
       console.error('[ASC] submission error:', err);
       paymentError.hidden = false;
       paymentError.textContent = "We couldn't save your details automatically. Tap the WhatsApp button below and send your screenshot — we'll register you manually.";
+      // Show the success popup so the user can send their screenshot manually.
       showSuccess(payload.fullName);
-      form.submit();
     } finally {
       confirmBtn.textContent = originalLabel;
       confirmBtn.disabled = !paidCheckbox.checked;
