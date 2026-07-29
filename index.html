@@ -436,7 +436,7 @@
   </header>
 
   <main class="card">
-    <form id="signupForm" name="enrollment" method="POST" data-netlify="true" novalidate>
+    <form id="signupForm" novalidate>
       <input type="hidden" name="sex" id="sexValue" value="" />
       <input type="hidden" name="current_grade_type" id="currentGradeType" value="average" />
       <input type="hidden" name="target_grade_type" id="targetGradeType" value="average" />
@@ -874,13 +874,82 @@ const CONFIG = {
     modalOverlay.hidden = false;
   });
 
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.hidden = true;
+
+    const nativeValid = form.checkValidity();
+    const sexOk = Boolean(sexValue);
+    const hearOk = hearAbout.value && (hearAbout.value !== 'Other' || document.getElementById('hearAboutOther').value.trim());
+    const metricOk = [currentGPA, targetGPA].every((input) => {
+      updateMetricState(input);
+      return validateMetricValue(input);
+    });
+
+    if (!nativeValid || !sexOk || !hearOk || !metricOk) {
+      formError.hidden = false;
+      formError.textContent = metricOk
+        ? 'Please fill in every field before continuing — including your sex and how you heard about us.'
+        : 'Please enter valid current and target scores within the selected range.';
+      if (!nativeValid) form.reportValidity();
+      return;
+    }
+
+    try {
+      const payload = {
+        payload: {
+          data: {
+            sex: sexValue,
+            fullname: document.getElementById('fullName').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            dob: document.getElementById('dob').value,
+            class_level: document.getElementById('classLevel').value.trim(),
+            country: document.getElementById('country').value.trim(),
+            school: document.getElementById('school').value.trim(),
+            current_grade_type: document.getElementById('currentGradeType').value,
+            current_grade: currentGPA.value.trim(),
+            target_grade_type: document.getElementById('targetGradeType').value,
+            target_grade: targetGPA.value.trim(),
+            referral: hearAbout.value === 'Other'
+              ? (document.getElementById('hearAboutOther').value.trim() || 'Other')
+              : hearAbout.value,
+            payment_info: document.getElementById('paymentRef') ? document.getElementById('paymentRef').value.trim() : '',
+            payment_confirmed: document.getElementById('paidCheckbox') ? (document.getElementById('paidCheckbox').checked ? 'true' : 'false') : 'false'
+          }
+        }
+      };
+
+      document.getElementById('paymentInfo').value = document.getElementById('paymentRef').value.trim();
+      document.getElementById('paymentConfirmed').value = document.getElementById('paidCheckbox').checked ? 'true' : 'false';
+
+      const response = await fetch('https://sheet-relay.chimbanrodr.workers.dev/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Worker submission failed');
+      }
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const message = 'Hi ASC team! I\'m '+ fullName + ' and I just signed up for '+ CONFIG.PRODUCT_LABEL + ' . Please contact me on WhatsApp.';
+      window.location.href = 'https://wa.me/' + CONFIG.WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
+    } catch (error) {
+      console.error('[ASC] Worker submission error:', error);
+      formError.hidden = false;
+      formError.textContent = 'We could not save your details right now. Please try again.';
+    }
+  });
+
   // ---- Modal open/close ----
   const modalClose = document.getElementById('modalClose');
   const paymentView = document.getElementById('paymentView');
   const successView = document.getElementById('successView');
 
   function closeModal(){
-    modalOverlay.hidden = true;
+    modalOverlay.hidden = true;                  
     stepDetails.classList.add('is-active');
     stepPayment.classList.remove('is-active');
   }
