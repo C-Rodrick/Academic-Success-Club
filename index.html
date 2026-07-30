@@ -660,7 +660,7 @@
 // =====================================================================
 const CONFIG = {
   // Paste your deployed Google Apps Script Web App URL (from apps-script.gs)
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbwC8NhIvxkucBqSuaJxh3MM97h0wHzA8XJkOje1YJ6KKBTmT6Ms9KU15GoLcezqXMUuqA/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbzSnNGzfi1PfK4DaCdngDewalcHa-G9VRmbhHDXT4M-0zBeaECv_XXMXEyy3fBdnJl0pw/exec',
 
   // What students see as the membership price
   AMOUNT_LABEL: '2,000 FCFA',
@@ -851,6 +851,35 @@ const CONFIG = {
     };
   }
 
+  function buildAppsScriptPayload(){
+    const paymentRef = document.getElementById('paymentRef') ? document.getElementById('paymentRef').value.trim() : '';
+    const paymentConfirmed = document.getElementById('paidCheckbox') ? (document.getElementById('paidCheckbox').checked ? 'true' : 'false') : 'false';
+
+    return {
+      payload: {
+        data: {
+          sex: sexValue,
+          fullname: document.getElementById('fullName').value.trim(),
+          phone: document.getElementById('phone').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          dob: document.getElementById('dob').value,
+          class_level: document.getElementById('classLevel').value.trim(),
+          country: document.getElementById('country').value.trim(),
+          school: document.getElementById('school').value.trim(),
+          current_grade_type: document.getElementById('currentGradeType').value,
+          current_grade: currentGPA.value.trim(),
+          target_grade_type: document.getElementById('targetGradeType').value,
+          target_grade: targetGPA.value.trim(),
+          referral: hearAbout.value === 'Other'
+            ? (document.getElementById('hearAboutOther').value.trim() || 'Other')
+            : hearAbout.value,
+          payment_info: paymentRef,
+          payment_confirmed: paymentConfirmed
+        }
+      }
+    };
+  }
+
   continueBtn.addEventListener('click', () => {
     formError.hidden = true;
 
@@ -898,41 +927,19 @@ const CONFIG = {
     }
 
     try {
-      const payload = {
-        payload: {
-          data: {
-            sex: sexValue,
-            fullname: document.getElementById('fullName').value.trim(),
-            phone: document.getElementById('phone').value.trim(),
-            email: document.getElementById('email').value.trim(),
-            dob: document.getElementById('dob').value,
-            class_level: document.getElementById('classLevel').value.trim(),
-            country: document.getElementById('country').value.trim(),
-            school: document.getElementById('school').value.trim(),
-            current_grade_type: document.getElementById('currentGradeType').value,
-            current_grade: currentGPA.value.trim(),
-            target_grade_type: document.getElementById('targetGradeType').value,
-            target_grade: targetGPA.value.trim(),
-            referral: hearAbout.value === 'Other'
-              ? (document.getElementById('hearAboutOther').value.trim() || 'Other')
-              : hearAbout.value,
-            payment_info: document.getElementById('paymentRef') ? document.getElementById('paymentRef').value.trim() : '',
-            payment_confirmed: document.getElementById('paidCheckbox') ? (document.getElementById('paidCheckbox').checked ? 'true' : 'false') : 'false'
-          }
-        }
-      };
+      const payload = buildAppsScriptPayload();
 
-      document.getElementById('paymentInfo').value = document.getElementById('paymentRef').value.trim();
-      document.getElementById('paymentConfirmed').value = document.getElementById('paidCheckbox').checked ? 'true' : 'false';
+      document.getElementById('paymentInfo').value = document.getElementById('paymentRef') ? document.getElementById('paymentRef').value.trim() : '';
+      document.getElementById('paymentConfirmed').value = document.getElementById('paidCheckbox') ? (document.getElementById('paidCheckbox').checked ? 'true' : 'false') : 'false';
 
-      const response = await fetch('https://sheet-relay.chimbanrodr.workers.dev/', {
+      const response = await fetch(CONFIG.GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error('Worker submission failed');
+        throw new Error('Apps Script submission failed');
       }
 
       const fullName = document.getElementById('fullName').value.trim();
@@ -1007,8 +1014,7 @@ const CONFIG = {
 
     try {
       if (CONFIG.GAS_URL) {
-        // Netlify-style envelope: { payload: { data: { ...form fields... } } }
-        const body = { payload: { data: payload } };
+        const body = buildAppsScriptPayload();
         const res = await fetch(CONFIG.GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
