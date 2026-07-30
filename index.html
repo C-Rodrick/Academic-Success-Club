@@ -436,9 +436,12 @@
   </header>
 
   <main class="card">
-    <form id="signupForm" action="/" data-netlify="true" novalidate>
-      <input type="hidden" name="form-name" value="signupForm" />
-      <input id="sexValue" name="sex" type="hidden" />
+    <form id="signupForm" novalidate>
+      <input type="hidden" name="sex" id="sexValue" value="" />
+      <input type="hidden" name="current_grade_type" id="currentGradeType" value="average" />
+      <input type="hidden" name="target_grade_type" id="targetGradeType" value="average" />
+      <input type="hidden" name="payment_info" id="paymentInfo" value="" />
+      <input type="hidden" name="payment_confirmed" id="paymentConfirmed" value="false" />
 
       <div class="field">
         <label id="sexLabel">Sex</label>
@@ -764,7 +767,9 @@ const CONFIG = {
     });
     applyMetricMode(input, mode, hintEl);
     const typeInput = input.id === 'currentGPA' ? document.getElementById('currentGradeType') : document.getElementById('targetGradeType');
-    typeInput.value = mode;
+    if (typeInput) {
+      typeInput.value = mode;
+    }
   }
 
   function validateMetricValue(input){
@@ -960,7 +965,9 @@ const CONFIG = {
   const paymentConfirmedInput = document.getElementById('paymentConfirmed');
   paidCheckbox.addEventListener('change', () => {
     confirmBtn.disabled = !paidCheckbox.checked;
-    paymentConfirmedInput.value = paidCheckbox.checked ? 'true' : 'false';
+    if (paymentConfirmedInput) {
+      paymentConfirmedInput.value = paidCheckbox.checked ? 'true' : 'false';
+    }
   });
 
   // ---- Confirm & submit ----
