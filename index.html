@@ -436,12 +436,9 @@
   </header>
 
   <main class="card">
-    <form id="signupForm" novalidate>
-      <input type="hidden" name="sex" id="sexValue" value="" />
-      <input type="hidden" name="current_grade_type" id="currentGradeType" value="average" />
-      <input type="hidden" name="target_grade_type" id="targetGradeType" value="average" />
-      <input type="hidden" name="payment_info" id="paymentInfo" value="" />
-      <input type="hidden" name="payment_confirmed" id="paymentConfirmed" value="false" />
+    <form id="signupForm" action="/" data-netlify="true" novalidate>
+      <input type="hidden" name="form-name" value="signupForm" />
+      <input id="sexValue" name="sex" type="hidden" />
 
       <div class="field">
         <label id="sexLabel">Sex</label>
@@ -934,7 +931,7 @@ const CONFIG = {
       }
 
       const fullName = document.getElementById('fullName').value.trim();
-      const message = 'Hi ASC team! I\'m '+ fullName + ' and I just signed up for '+ CONFIG.PRODUCT_LABEL + ' . Please contact me on WhatsApp.';
+      const message = 'Hi ASC team! I\'m ' + fullName + ' and I just signed up for ' + CONFIG.PRODUCT_LABEL + '. Please contact me on WhatsApp.';
       window.location.href = 'https://wa.me/' + CONFIG.WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
     } catch (error) {
       console.error('[ASC] Worker submission error:', error);
@@ -949,7 +946,7 @@ const CONFIG = {
   const successView = document.getElementById('successView');
 
   function closeModal(){
-    modalOverlay.hidden = true;                  
+    modalOverlay.hidden = true;
     stepDetails.classList.add('is-active');
     stepPayment.classList.remove('is-active');
   }
